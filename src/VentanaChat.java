@@ -9,24 +9,30 @@ import javax.swing.JTextField;
 import javax.swing.JButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import java.awt.event.ActionListener;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.awt.event.ActionEvent;
+import java.awt.Font;
 
 public class VentanaChat extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
-	private JTextField tfIP;
-	private JTextField tfPuerto;
 	private JTextField tfMensaje;
+	private JTextArea taConversacion;
 
 	/**
 	 * Launch the application.
 	 */
 	private String nombreUsuario;
 	private String destinatario;
+	private DataOutputStream dos;
 
-	public VentanaChat(String nombreUsuario, String destinatario) {
+	public VentanaChat(String nombreUsuario, String destinatario,DataOutputStream dos) {
 		this.nombreUsuario= nombreUsuario;
 		this.destinatario= destinatario;
+		this.dos=dos;
 		
 		setTitle("Chat con "+ destinatario);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -40,22 +46,9 @@ public class VentanaChat extends JFrame {
 		JPanel panelCabecera = new JPanel();
 		contentPane.add(panelCabecera, BorderLayout.NORTH);
 		
-		JLabel lblIP = new JLabel("IP");
-		panelCabecera.add(lblIP);
-		
-		tfIP = new JTextField();
-		panelCabecera.add(tfIP);
-		tfIP.setColumns(10);
-		
-		JLabel lblPuerto = new JLabel("Puerto");
-		panelCabecera.add(lblPuerto);
-		
-		tfPuerto = new JTextField();
-		panelCabecera.add(tfPuerto);
-		tfPuerto.setColumns(10);
-		
-		JButton btnConectar = new JButton("Conectar");
-		panelCabecera.add(btnConectar);
+		JLabel lblCabecera = new JLabel("Hablando con: "+ destinatario);
+		lblCabecera.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		panelCabecera.add(lblCabecera);
 		
 		JPanel panelConversacion = new JPanel();
 		contentPane.add(panelConversacion, BorderLayout.CENTER);
@@ -65,7 +58,7 @@ public class VentanaChat extends JFrame {
 		scrollPane.setBounds(47, 15, 327, 197);
 		panelConversacion.add(scrollPane);
 		
-		JTextArea taConversacion = new JTextArea();
+		taConversacion = new JTextArea();
 		scrollPane.setViewportView(taConversacion);
 		
 		JPanel panelEnviar = new JPanel();
@@ -76,6 +69,23 @@ public class VentanaChat extends JFrame {
 		tfMensaje.setColumns(10);
 		
 		JButton btnEnviar = new JButton("Enviar");
+		btnEnviar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String conversacion= tfMensaje.getText().trim();
+				if(!conversacion.isEmpty()) {
+					String mensaje= nombreUsuario + " "+ destinatario + " : "+ conversacion;
+					try {
+						dos.writeUTF(mensaje);
+						dos.flush();
+						taConversacion.append("Tú: "+ conversacion+ "\n");
+						tfMensaje.setText("");
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+			}
+		});
 		panelEnviar.add(btnEnviar);
 	}
 }

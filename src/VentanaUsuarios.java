@@ -8,6 +8,7 @@ import java.awt.Font;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.io.DataOutputStream;
 import java.awt.event.ActionEvent;
 
 public class VentanaUsuarios extends JFrame {
@@ -15,12 +16,15 @@ public class VentanaUsuarios extends JFrame {
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
 	private String nombreUsuario;
+	private DataOutputStream dos;
 
 	/**
 	 * Launch the application.
 	 */
 	
-	public VentanaUsuarios() {
+	public VentanaUsuarios(String nombreUsuario, DataOutputStream dos) {
+		this.nombreUsuario=nombreUsuario;
+		this.dos=dos;
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -43,7 +47,7 @@ public class VentanaUsuarios extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				String yo = nombreUsuario; 
 				String otro = cbUsuarios.getSelectedItem().toString(); // usuario seleccionado del combo
-				VentanaChat ventanaChat = new VentanaChat(yo, otro);
+				VentanaChat ventanaChat = new VentanaChat(yo, otro, dos);
 				ventanaChat.setVisible(true);
 				dispose();
 			}

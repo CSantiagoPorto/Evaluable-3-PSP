@@ -10,6 +10,10 @@ import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.awt.event.ActionEvent;
 
 public class VentanaLogin extends JFrame {
@@ -21,6 +25,9 @@ public class VentanaLogin extends JFrame {
 	private JTextField tfIP;
 	private JTextField tfPuerto;
 	private JButton btnConectar;
+	private String nombre;
+	private String ip;
+	private int puerto;
 
 	/**
 	 * Launch the application.
@@ -83,9 +90,31 @@ public class VentanaLogin extends JFrame {
 		btnConectar = new JButton("Conectar");
 		btnConectar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				VentanaUsuarios ventanaUsuarios = new VentanaUsuarios();
-				ventanaUsuarios.setVisible(true);
-				dispose(); 
+				nombre= tfNombre.getText();//Obtenemos el nombre
+				ip=tfIP.getText();//Obtenemos la IP
+				puerto=Integer.parseInt(tfPuerto.getText());
+				//Convierto el texto del campo tfPuerto en un int
+				
+				Socket socket;
+				try {
+					socket = new Socket(ip, puerto);//Creo la conexión con el servidor
+					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+					//Accedo al flujo de salida. Hay que envolverlo en dos porque necesito poder usar
+					//write, que socket no puede
+					VentanaUsuarios ventanaUsuarios = new VentanaUsuarios(nombre, dos);
+					ventanaUsuarios.setVisible(true);
+					dispose();
+				} catch (UnknownHostException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				
+		
+				
+				 
 			}
 		});
 		sl_contentPane.putConstraint(SpringLayout.NORTH, btnConectar, 81, SpringLayout.SOUTH, panelArriba);
