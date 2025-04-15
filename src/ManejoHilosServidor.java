@@ -26,9 +26,14 @@ public class ManejoHilosServidor implements Runnable{
 		try {
 			DataInputStream dis= new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+			String nombreCliente=dis.readUTF();
+			System.out.println("Cliente conectado :"+ nombreCliente);
 			String mensaje = "";
 			while(true) {
 				mensaje= dis.readUTF();
+				String partes[]=mensaje.split("->");//HAY QUE CAMBIAR EL MENSAJE
+				//METER ALGO QUE SE DIFERENCIE MEJOR
+				String emisor= partes[0];
 				System.out.println("El mensaje recibido es: "+ mensaje);
 				BufferedWriter bw = new BufferedWriter(new FileWriter(archivo, true));
 				bw.write(mensaje);

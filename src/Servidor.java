@@ -24,6 +24,9 @@ public class Servidor {
 			Socket socket = serverSocket.accept();//Aceptamos las conxiones en bucle infinito
 			System.out.println("(Servidor) Conexión establecida...");
 			//AQUÍ CREAREMOS LOS HILOS CUANDO HAYA CONSTRUIDO MANEJOHILOSSERVIDOR
+			ManejoHilosServidor manejador =new ManejoHilosServidor(socket);
+			Thread hilo= new Thread(manejador);
+			hilo.start();
 		}
 		
 		

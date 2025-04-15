@@ -101,6 +101,8 @@ public class VentanaLogin extends JFrame {
 					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 					//Accedo al flujo de salida. Hay que envolverlo en dos porque necesito poder usar
 					//write, que socket no puede
+					dos.writeUTF(nombre);
+					dos.flush();
 					VentanaUsuarios ventanaUsuarios = new VentanaUsuarios(nombre, dos);
 					ventanaUsuarios.setVisible(true);
 					dispose();

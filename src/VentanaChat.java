@@ -73,7 +73,7 @@ public class VentanaChat extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				String conversacion= tfMensaje.getText().trim();
 				if(!conversacion.isEmpty()) {
-					String mensaje= nombreUsuario + " "+ destinatario + " : "+ conversacion;
+					String mensaje= nombreUsuario + "->"+ destinatario + " : "+ conversacion;
 					try {
 						dos.writeUTF(mensaje);
 						dos.flush();
