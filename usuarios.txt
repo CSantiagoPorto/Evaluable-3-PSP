@@ -1,2 +1,5 @@
 ana:1234
-luis:abcd
+luis:1234
+jacobo:1234
+carla:1234
+inés:1234
