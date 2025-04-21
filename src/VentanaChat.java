@@ -10,6 +10,7 @@ import javax.swing.JButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.awt.event.ActionEvent;
@@ -28,11 +29,13 @@ public class VentanaChat extends JFrame {
 	private String nombreUsuario;
 	private String destinatario;
 	private DataOutputStream dos;
+	private DataInputStream dis;
 
-	public VentanaChat(String nombreUsuario, String destinatario,DataOutputStream dos) {
+	public VentanaChat(String nombreUsuario, String destinatario,DataOutputStream dos, DataInputStream dis) {
 		this.nombreUsuario= nombreUsuario;
 		this.destinatario= destinatario;
 		this.dos=dos;
+		this.dis=dis;
 		
 		setTitle("Chat con "+ destinatario);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -87,5 +90,13 @@ public class VentanaChat extends JFrame {
 			}
 		});
 		panelEnviar.add(btnEnviar);
+		
+		ManejoHilosCliente hiloCliente = new ManejoHilosCliente(dis, taConversacion);
+		hiloCliente.start();
+
 	}
+	public void mostrarMensajeEnPantalla(String mensaje) {
+	    taConversacion.append(mensaje + "\n");
+	}
+
 }
