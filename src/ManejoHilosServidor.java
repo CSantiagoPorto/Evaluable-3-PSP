@@ -1,7 +1,9 @@
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
@@ -10,6 +12,8 @@ public class ManejoHilosServidor implements Runnable{
 	
 	private Socket socket;
 	File archivo= new File(Servidor.RUTA_ARCHIVO);
+	private static final java.util.Map<String, DataOutputStream> mapaUsuarios = new java.util.HashMap<>();
+
 	
 	
 
@@ -26,8 +30,29 @@ public class ManejoHilosServidor implements Runnable{
 		try {
 			DataInputStream dis= new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+			String credenciales = dis.readUTF(); // por ejemplo: "ana:1234"
+			if (!credencialesValidas(credenciales)) {
+			    dos.writeUTF("ERROR: Credenciales inválidas.");
+			    socket.close();
+			    return;
+			}
+
 			String nombreCliente=dis.readUTF();
 			System.out.println("Cliente conectado :"+ nombreCliente);
+			synchronized (mapaUsuarios) {
+			    mapaUsuarios.put(nombreCliente, dos);
+			}//Después de recibir el nombre debo guardarlo en el map
+			// Enviamos la lista de usuarios conectados al nuevo cliente
+			synchronized (mapaUsuarios) {
+			    for (String usuario : mapaUsuarios.keySet()) {
+			        if (!usuario.equals(nombreCliente)) {
+			            dos.writeUTF("USUARIO:" + usuario);
+			        }
+			    }
+			    dos.writeUTF("FIN_USUARIOS"); // Indicamos el final de la lista
+			}
+
+
 			String mensaje = "";
 			while(true) {
 				mensaje= dis.readUTF();
@@ -40,7 +65,15 @@ public class ManejoHilosServidor implements Runnable{
 				String nombreArchivo=generarNombreArchivo(emisor,receptor);
 				guardarMensaje(nombreArchivo, "[" + emisor + " → " + receptor + "] " + texto);
 				//Este método escribe el archivo
-				
+				synchronized (mapaUsuarios) {
+				    if (mapaUsuarios.containsKey(receptor)) {
+				        DataOutputStream destino = mapaUsuarios.get(receptor);
+				        destino.writeUTF("[" + emisor + "] " + texto);
+				    }//Reenvío el mensaje al receptor
+				}
+
+			
+
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -70,6 +103,21 @@ public class ManejoHilosServidor implements Runnable{
 	        e.printStackTrace();
 	    }
 	}
+	private boolean credencialesValidas(String credenciales) {
+	    File archivoUsuarios = new File("usuarios.txt");
+	    try (BufferedReader br = new BufferedReader(new FileReader(archivoUsuarios))) {
+	        String linea;
+	        while ((linea = br.readLine()) != null) {
+	            if (linea.trim().equalsIgnoreCase(credenciales.trim())) {
+	                return true;
+	            }
+	        }
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+	    return false;
+	}
+
 
 
 }
