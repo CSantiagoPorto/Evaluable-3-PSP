@@ -1,37 +1,27 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+
+import java.io.*;
 import java.net.Socket;
-
+//Aquí abro el socket para tender el puente entre el cliente y el servidor
 public class Cliente {
-	private String serverIP;
-	private int serverPort;
-	private Socket socket;
-	private DataInputStream is;
-	private DataOutputStream out;
+    private Socket socket;
+    private BufferedReader entrada;
+    private PrintWriter salida;
 
-	public Cliente(String serverIP, int serverPort) {
-		this.serverIP = serverIP;
-		this.serverPort = serverPort;
-	}
+    public Cliente(String host, int puerto) throws IOException {
+        socket = new Socket(host, puerto);
+        entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        salida = new PrintWriter(socket.getOutputStream(), true);
+    }
 
-	public void start() throws IOException {
-		System.out.println("(Cliente) Estableciendo conexión...");
-		socket = new Socket(serverIP, serverPort);
-		is = new DataInputStream(socket.getInputStream());
-		out = new DataOutputStream(socket.getOutputStream());
-		System.out.println("(Cliente) Conexión establecida...");
-	}
+    public BufferedReader getEntrada() {
+        return entrada;
+    }
 
-	public DataInputStream getInputStream() {
-		return is;
-	}
+    public PrintWriter getSalida() {
+        return salida;
+    }
 
-	public DataOutputStream getOutputStream() {
-		return out;
-	}
-
-	public Socket getSocket() {
-		return socket;
-	}
+    public Socket getSocket() {
+        return socket;
+    }
 }

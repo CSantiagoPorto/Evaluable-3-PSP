@@ -3,7 +3,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-
+//Esta clase escicha las conexiones y lanza un hilo ManejoHilosServidor por cada cliente
 public class Servidor {
 	public static final int PUERTO = 5000;
 	public static final String RUTA_ARCHIVO = "usuarios.txt";

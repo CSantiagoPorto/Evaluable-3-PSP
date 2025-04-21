@@ -1,38 +1,39 @@
-import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 
-public class ManejoHilosCliente extends Thread {
+import javax.swing.JComboBox;
+//Para cada cliente escucha los mensajes que emite el servidor y va a actualizar la ventana
+class ManejoHilosCliente extends Thread {
+    private BufferedReader entrada;
+    private Conversacion ventana;
 
-    private DataInputStream in;
-    private Conversacion ventanaConversacion;
-
-    public ManejoHilosCliente(DataInputStream in, Conversacion ventanaConversacion) {
-        this.in = in;
-        this.ventanaConversacion = ventanaConversacion;
+    public ManejoHilosCliente(BufferedReader entrada, Conversacion ventana) {
+        this.entrada = entrada;
+        this.ventana = ventana;
     }
 
     public void run() {
         try {
-            while (true) {
-            	String mensaje = in.readUTF();
-            	 if (mensaje.startsWith("USUARIO:")) {
-                     String nombreDestinatario = mensaje.substring(8);
-                     ventanaConversacion.agregarDestinatario(nombreDestinatario);
-                 } else if (mensaje.equals("FIN_USUARIOS")) {
-                     System.out.println("(Cliente) Lista de usuarios recibida.");
-                 } else {
-                     // Mostramos mensaje de chat
-                     System.out.println("(Cliente) Mensaje recibido: " + mensaje);
-                     ventanaConversacion.mostrarMensajeEnPantalla(mensaje);
-                 }
-               
+            String linea;
+            while ((linea = entrada.readLine()) != null) {
+                if (linea.startsWith("Usuarios:")) {
+                    String usuarios = linea.substring(9);
+                    String[] lista = usuarios.split(",");
 
-                // Mostramos el mensaje en la ventana
-                ventanaConversacion.mostrarMensajeEnPantalla(mensaje);
+                    JComboBox combo = ventana.getCbDestinatario();
+                    combo.removeAllItems();
+
+                    for (String usuario : lista) {
+                        if (!usuario.isEmpty()) {
+                            ventana.agregarDestinatario(usuario.trim());
+                        }
+                    }
+                } else {
+                    ventana.mostrarMensajeEnPantalla(linea);
+                }
             }
         } catch (IOException e) {
-            System.out.println("(Cliente) Conexión cerrada o error en el hilo: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("(Cliente) Error en hilo: " + e.getMessage());
         }
     }
 }

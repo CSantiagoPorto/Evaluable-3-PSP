@@ -1,148 +1,104 @@
-import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.awt.BorderLayout;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.JButton;
-import javax.swing.JTextArea;
-import javax.swing.JComboBox;
-import java.awt.event.ActionListener;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.awt.event.ActionEvent;
-
+import java.io.*;
+//Se conecta, muestra los mensajes y los envía
 public class Conversacion extends JFrame {
+    private static final long serialVersionUID = 1L;
+    private JPanel contentPane;
+    private JTextField tfNombre;
+    private JTextField tfMensaje;
+    private JTextArea taConversacion;
+    private JComboBox<String> cbDestinatario;
+    private Cliente cliente;
+    private PrintWriter salida;
 
-	private static final long serialVersionUID = 1L;
-	private JPanel contentPane;
-	private JTextField tfNombre;
-	private JTextField tfMensaje;
-	private JTextArea taConversacion;
-	private JComboBox cbDestinatario;
+    public static void main(String[] args) {
+        EventQueue.invokeLater(() -> {
+            try {
+                Conversacion frame = new Conversacion();
+                frame.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
 
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Conversacion frame = new Conversacion();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
+    public Conversacion() {
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBounds(100, 100, 500, 350);
+        contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+        contentPane.setLayout(new BorderLayout());
 
-	/**
-	 * Create the frame.
-	 */
-	public Conversacion() {
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 450, 300);
-		contentPane = new JPanel();
-		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        JPanel panelCabecera = new JPanel();
+        contentPane.add(panelCabecera, BorderLayout.NORTH);
 
-		setContentPane(contentPane);
-		contentPane.setLayout(new BorderLayout(0, 0));
-		
-		JPanel panelCabecera = new JPanel();
-		contentPane.add(panelCabecera, BorderLayout.NORTH);
-		
-		JLabel lblNombre = new JLabel("Nombre");
-		panelCabecera.add(lblNombre);
-		
-		tfNombre = new JTextField();
-		panelCabecera.add(tfNombre);
-		tfNombre.setColumns(10);
-		
-		JButton btnConectar = new JButton("Conectar");
-		btnConectar.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-			}
-		});
-		panelCabecera.add(btnConectar);
-		
-		JPanel panelCentro = new JPanel();
-		contentPane.add(panelCentro, BorderLayout.CENTER);
-		panelCentro.setLayout(null);
-		
-		taConversacion = new JTextArea();
-		taConversacion.setBounds(10, 0, 406, 178);
-		panelCentro.add(taConversacion);
-		
-		JPanel panelInferior = new JPanel();
-		contentPane.add(panelInferior, BorderLayout.SOUTH);
-		
-		JLabel lblDestinatario = new JLabel("Destinatario");
-		panelInferior.add(lblDestinatario);
-		
-		cbDestinatario = new JComboBox();
-		cbDestinatario.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					String nombre = tfNombre.getText().trim();
-					if (nombre.isEmpty()) return;
+        panelCabecera.add(new JLabel("Nombre"));
+        tfNombre = new JTextField(10);
+        panelCabecera.add(tfNombre);
 
-					// Creo el cliente
-					Cliente cliente = new Cliente("localhost", 5000);
-					cliente.start();
-					DataInputStream dis = cliente.getInputStream();
-					DataOutputStream dos = cliente.getOutputStream();
+        JButton btnConectar = new JButton("Conectar");
+        panelCabecera.add(btnConectar);
 
-					// Envío el nombr
-					dos.writeUTF(nombre);
+        JPanel panelCentro = new JPanel(null);
+        contentPane.add(panelCentro, BorderLayout.CENTER);
+        taConversacion = new JTextArea();
+        taConversacion.setEditable(false);
+        taConversacion.setBounds(10, 0, 460, 200);
+        panelCentro.add(taConversacion);
 
-					// Lanzo hilo para recibir usuarios y mensajes
-					new Thread(() -> {
-						try {
-							while (true) {
-								String mensaje = dis.readUTF();
-								if (mensaje.startsWith("USUARIO:")) {
-									String usuario = mensaje.substring(8);
-									cbDestinatario.addItem(usuario); // Añadir al combo
-								} else if (mensaje.startsWith("FIN_USUARIOS")) {
-									System.out.println("Lista de usuarios recibida.");
-								} else {
-									// Añadimos el mensaje a la conversación
-									taConversacion.append(mensaje + "\n");
-								}
-							}
-						} catch (IOException ex) {
-							ex.printStackTrace();
-						}
-					}).start();
+        JPanel panelInferior = new JPanel();
+        contentPane.add(panelInferior, BorderLayout.SOUTH);
 
-				} catch (IOException ex) {
-					ex.printStackTrace();
-				}
-			}
-		});
-		panelInferior.add(cbDestinatario);
-		
-		tfMensaje = new JTextField();
-		panelInferior.add(tfMensaje);
-		tfMensaje.setColumns(10);
-	}
-	public void mostrarMensajeEnPantalla(String mensaje) {
-	    taConversacion.append(mensaje + "\n");
-	}
+        panelInferior.add(new JLabel("Destinatario"));
+        cbDestinatario = new JComboBox<>();
+        panelInferior.add(cbDestinatario);
 
-	public JTextArea getTaConversacion() {
-		return taConversacion;
-	}
-	
-	public JComboBox getCbDestinatario() {
-		return cbDestinatario;
-	}
-public void agregarDestinatario(String Destinatario) {
-	cbDestinatario.addItem(Destinatario);
-		
-	}
+        tfMensaje = new JTextField(15);
+        panelInferior.add(tfMensaje);
+
+        JButton btnEnviar = new JButton("Enviar");
+        panelInferior.add(btnEnviar);
+
+        btnConectar.addActionListener(e -> {
+            try {
+                String nombre = tfNombre.getText().trim();
+                if (nombre.isEmpty()) return;
+
+                cliente = new Cliente("localhost", 5000);
+                salida = cliente.getSalida();
+                salida.println(nombre);
+
+                ManejoHilosCliente hilo = new ManejoHilosCliente(cliente.getEntrada(), this);
+                hilo.start();
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        btnEnviar.addActionListener(e -> {
+            String mensaje = tfMensaje.getText().trim();
+            if (!mensaje.isEmpty() && cbDestinatario.getSelectedItem() != null) {
+                String destinatario = cbDestinatario.getSelectedItem().toString();
+                salida.println(destinatario + ":" + mensaje);
+                tfMensaje.setText("");
+            }
+        });
+    }
+
+    public void mostrarMensajeEnPantalla(String mensaje) {
+        taConversacion.append(mensaje + "\n");
+    }
+
+    public JComboBox<String> getCbDestinatario() {
+        return cbDestinatario;
+    }
+
+    public void agregarDestinatario(String destinatario) {
+        cbDestinatario.addItem(destinatario);
+    }
 }

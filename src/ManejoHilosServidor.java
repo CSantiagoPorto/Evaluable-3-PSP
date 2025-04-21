@@ -1,122 +1,93 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ManejoHilosServidor implements Runnable {
-	
-	private Socket socket; // socket conectado del cliente
-	File archivo = new File(Servidor.RUTA_ARCHIVO); // archivo donde se guardan los mensajes (no se usa aquí hay uno por conversación)
-	private static final Map<String, DataOutputStream> mapaUsuarios = new HashMap<>(); // mapa con los usuarios conectados y su flujo de salida
+//Se encarga de cada cliente, guarda su nombre, escucha los mensajes y luego los reenvía
 
-	public ManejoHilosServidor(Socket socket) {
-		this.socket = socket;
-	}
+class ManejoHilosServidor implements Runnable {
+    private Socket socket;
+    private static final Map<String, PrintWriter> usuariosConectados = new HashMap<>();
+    //Esto es un mapa que me va a guardar los nombres y las contraseñas
+    private String nombre;
 
-	@Override
-	public void run() {
-		// Vamos a crear el flujo de datos
-		try {
-			DataInputStream dis = new DataInputStream(socket.getInputStream());
-			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+    public ManejoHilosServidor(Socket socket) {
+        this.socket = socket;
+    }
 
-			// Leemos las credenciales y comprobamos si son válidas
-			String credenciales = dis.readUTF(); // por ejemplo: "ana:1234"
-			System.out.println("(Servidor) Credenciales recibidas: " + credenciales);
-			if (!credencialesValidas(credenciales)) {
-				dos.writeUTF("ERROR: Credenciales inválidas.");
-				socket.close();
-				return;
-			}
+    public void run() {
+        try {
+        	//cambio a bf y pw porque los datainput no estaban funcionando bien
+            BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
 
-			// Leemos el nombre del cliente (ya autenticado)
-			String nombreCliente = dis.readUTF();
-			System.out.println("(Servidor) Cliente autenticado: " + nombreCliente);
+            // Leemos el nombre que nos manda
+            nombre = entrada.readLine();
+            synchronized (usuariosConectados) {
+                usuariosConectados.put(nombre, salida);
+            }
 
-			// Añadimos al cliente al mapa de usuarios conectados
-			synchronized (mapaUsuarios) {
-				mapaUsuarios.put(nombreCliente, dos);
-				System.out.println("(Servidor) Usuario conectado añadido al combo: " + nombreCliente);
-			}
+            // Mandamos la lista lista de usuarios
+            enviarListaUsuarios();
 
-			// Enviamos la lista de usuarios conectados en este mismo hilo
-			synchronized (mapaUsuarios) {
-				for (String usuario : mapaUsuarios.keySet()) {
-					if (!usuario.equals(nombreCliente)) {
-						dos.writeUTF("USUARIO:" + usuario);
-					}
-				}
-				dos.writeUTF("FIN_USUARIOS");
-				System.out.println("(Servidor) Lista de usuarios enviada.");
-			}
+            // Recibir mensajes y reenviar
+            String linea;
+            while ((linea = entrada.readLine()) != null) {
+                if (linea.contains(":")) {
+                    String[] partes = linea.split(":", 2);
+                    String destino = partes[0];
+                    String mensaje = partes[1];
 
-			// Comenzamos a recibir mensajes de este cliente
-			String mensaje = "";
-			while (true) {
-				mensaje = dis.readUTF();
-				String partes[] = mensaje.split("->"); // Formato: Ana->Luis: hola qué tal
-				String emisor = partes[0].trim();
+                    synchronized (usuariosConectados) {
+                        PrintWriter destinoSalida = usuariosConectados.get(destino);
+                        if (destinoSalida != null) {
+                            destinoSalida.println(nombre + ": " + mensaje);
+                        }
+                        // El emisor también ve su mensaje
+                        usuariosConectados.get(nombre).println(nombre + ": " + mensaje);
+                    }
 
-				String[] receptorTexto = partes[1].split(":", 2);
-				String receptor = receptorTexto[0].trim();
-				String texto = receptorTexto[1].trim();
+                    guardarMensaje(nombre, destino, mensaje);
+                }
+            }
 
-				String nombreArchivo = generarNombreArchivo(emisor, receptor); // genera nombre de archivo único por conversación
-				guardarMensaje(nombreArchivo, "[" + emisor + " → " + receptor + "] " + texto); // guardamos en archivo
-				
-				// Reenvío el mensaje al destinatario si está conectado
-				synchronized (mapaUsuarios) {
-					if (mapaUsuarios.containsKey(receptor)) {
-						DataOutputStream destino = mapaUsuarios.get(receptor);
-						destino.writeUTF("[" + emisor + "] " + texto);
-					}
-				}
-			}
-		} catch (IOException e) {
-			System.out.println("(Servidor) Error en hilo de cliente -> " + e.getMessage());
-			e.printStackTrace();
-		}
-	}
+        } catch (IOException e) {
+            System.out.println("(Servidor) Error: " + e.getMessage());
+        } finally {
+            synchronized (usuariosConectados) {
+                usuariosConectados.remove(nombre);
+            }
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-	// Método para generar el nombre del archivo compartido entre emisor y receptor
-	private String generarNombreArchivo(String emisor, String receptor) {
-		if (emisor.compareTo(receptor) < 0) {
-			return emisor + "_" + receptor + ".txt";
-		} else {
-			return receptor + "_" + emisor + ".txt";
-		}
-	}
+    private void enviarListaUsuarios() {
+        synchronized (usuariosConectados) {
+            StringBuilder sb = new StringBuilder();
+            for (String u : usuariosConectados.keySet()) {
+                if (!u.equals(nombre)) {
+                    sb.append(u).append(",");
+                }
+            }
+            if (sb.length() > 0) sb.setLength(sb.length() - 1);
+            usuariosConectados.get(nombre).println("Usuarios:" + sb);
+        }
+    }
 
-	// Método sincronizado para guardar mensajes en el archivo
-	private synchronized void guardarMensaje(String archivo, String linea) {
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(archivo, true))) {
-			bw.write(linea);
-			bw.newLine();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	// Comprobamos si el usuario está registrado
-	private boolean credencialesValidas(String credenciales) {
-		File archivoUsuarios = new File("usuarios.txt");
-		try (BufferedReader br = new BufferedReader(new FileReader(archivoUsuarios))) {
-			String linea;
-			while ((linea = br.readLine()) != null) {
-				if (linea.trim().equalsIgnoreCase(credenciales.trim())) {
-					return true;
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
+    private synchronized void guardarMensaje(String emisor, String receptor, String mensaje) {
+        String archivo = (emisor.compareTo(receptor) < 0 ? emisor + "_" + receptor : receptor + "_" + emisor) + ".txt";
+        try (FileWriter fw = new FileWriter(archivo, true)) {
+            fw.write(emisor + ": " + mensaje + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
